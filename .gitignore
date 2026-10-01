@@ -1,0 +1,35 @@
+# Generated Godot and Unity data
+**/.godot/
+**/Library/
+**/Temp/
+**/Logs/
+**/UserSettings/
+**/Obj/
+**/obj/
+**/Builds/
+**/.vs/
+*.csproj
+*.sln
+*.log
+*.tmp
+*.bak
+*.pidb
+*.suo
+
+# Local engine, editor preferences, and installed agent packages
+/tools/godot/
+/.agents/
+/.vscode/
+**/__pycache__/
+*.pyc
+
+# Local credentials and save data
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+credentials.json
+street_shooters_v1.json
+qa_save.json
+options.cfg

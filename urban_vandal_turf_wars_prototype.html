@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Street Shooters - Graffiti Turf Prototype</title>
+  <style>
+    :root {
+      --ink: #080909;
+      --panel: rgba(7, 9, 11, 0.78);
+      --paint: #00e0ff;
+      --crew: #ff2f7d;
+      --rival: #ffd43b;
+      --cop: #62a8ff;
+      --danger: #ff4848;
+      --health: #47e071;
+      --paper: #f4f1e8;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      letter-spacing: 0;
+      touch-action: none;
+      user-select: none;
+    }
+
+    #game-shell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 24% 18%, rgba(255, 47, 125, 0.22), transparent 30%),
+        radial-gradient(circle at 74% 78%, rgba(0, 224, 255, 0.18), transparent 30%),
+        linear-gradient(135deg, #060708, #15181b 42%, #090a0d);
+    }
+
+    canvas {
+      width: min(100vw, 1200px);
+      height: min(100vh, 800px);
+      aspect-ratio: 3 / 2;
+      display: block;
+      background: #06080b;
+      border: 3px solid rgba(244, 241, 232, 0.18);
+      box-shadow:
+        0 18px 80px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(0, 224, 255, 0.18),
+        0 0 44px rgba(255, 47, 125, 0.18);
+      image-rendering: auto;
+    }
+
+    #hud {
+      position: absolute;
+      inset: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .panel {
+      min-width: 238px;
+      background: var(--panel);
+      border: 2px solid rgba(244, 241, 232, 0.18);
+      border-left: 7px solid var(--crew);
+      padding: 10px 12px;
+      text-shadow: 0 2px 0 #000;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 0 24px rgba(0, 224, 255, 0.04);
+      backdrop-filter: blur(6px) saturate(1.25);
+    }
+
+    .panel.right {
+      border-left-color: var(--cop);
+      text-align: right;
+    }
+
+    .brand {
+      font-size: 28px;
+      line-height: 0.92;
+      color: var(--crew);
+      text-transform: uppercase;
+    }
+
+    .line {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font: 700 14px/1.15 "Arial Narrow", Arial, sans-serif;
+      letter-spacing: 0.04em;
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    .meter {
+      width: 178px;
+      height: 12px;
+      margin-top: 4px;
+      background: rgba(244, 241, 232, 0.15);
+      border: 1px solid rgba(244, 241, 232, 0.28);
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 100%;
+      transform-origin: left center;
+      transition: transform 0.08s linear;
+      box-shadow: 0 0 14px currentColor;
+    }
+
+    #health-fill { background: var(--health); }
+    #paint-fill { background: var(--paint); }
+    #stamina-fill { background: var(--rival); }
+
+    .callout {
+      min-width: 270px;
+      color: var(--paper);
+      font: 900 22px/1 Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      text-transform: uppercase;
+    }
+
+    .danger { color: var(--danger); }
+    .warning { color: var(--rival); }
+    .quiet { color: rgba(244, 241, 232, 0.72); }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.78);
+      pointer-events: auto;
+    }
+
+    #start-screen {
+      display: flex;
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.72)),
+        url("ChatGPT Image Aug 13, 2026, 01_27_42 AM (2).png") center / cover no-repeat;
+    }
+
+    .menu {
+      width: min(760px, 94vw);
+      margin-right: min(42vw, 520px);
+      padding: 22px 26px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(255, 47, 125, 0.7);
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.64);
+      backdrop-filter: blur(2px);
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--crew);
+      font-size: clamp(50px, 9vw, 112px);
+      line-height: 0.82;
+      text-transform: uppercase;
+      text-shadow: 5px 5px 0 #000, 0 0 28px rgba(255, 47, 125, 0.65);
+    }
+
+    h2 {
+      margin: 12px 0 8px;
+      color: var(--paint);
+      font-size: clamp(24px, 4vw, 48px);
+      line-height: 0.96;
+      text-transform: uppercase;
+    }
+
+    .menu p {
+      max-width: 680px;
+      margin: 10px 0;
+      font: 800 18px/1.35 "Arial Narrow", Arial, sans-serif;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      background: var(--crew);
+      color: #fff;
+      padding: 13px 24px;
+      margin-top: 16px;
+      font: 900 22px/1 Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 5px 5px 0 #000;
+    }
+
+    button:hover { filter: brightness(1.12); }
+    button:disabled { filter: grayscale(1); cursor: wait; }
+
+    .menu-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    .menu-actions button { margin-top: 0; }
+
+    .secondary-btn {
+      background: rgba(0, 224, 255, 0.22);
+      border: 2px solid rgba(0, 224, 255, 0.7);
+    }
+
+    .skin-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0 4px;
+    }
+
+    .skin-card {
+      padding: 10px 12px;
+      border: 2px solid rgba(244, 241, 232, 0.24);
+      background: rgba(0, 0, 0, 0.55);
+      color: rgba(244, 241, 232, 0.8);
+      font: 900 15px/1 "Arial Narrow", Arial, sans-serif;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .skin-card.active {
+      border-color: var(--crew);
+      color: #fff;
+      box-shadow: 0 0 22px rgba(255, 47, 125, 0.34);
+    }
+
+    .upgrade-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .upgrade-card {
+      min-height: 136px;
+      padding: 12px;
+      border: 2px solid rgba(244, 241, 232, 0.2);
+      background: rgba(0, 0, 0, 0.58);
+      color: var(--paper);
+      text-align: left;
+      box-shadow: 4px 4px 0 #000;
+      cursor: pointer;
+    }
+
+    .upgrade-card:hover {
+      border-color: var(--paint);
+      box-shadow: 0 0 26px rgba(0, 224, 255, 0.28), 4px 4px 0 #000;
+    }
+
+    .upgrade-card.locked {
+      opacity: 0.42;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
+
+    .upgrade-card h3 {
+      margin: 0 0 5px;
+      color: var(--crew);
+      font: 900 22px/1 Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      text-transform: uppercase;
+    }
+
+    .upgrade-card p {
+      margin: 0;
+      font: 800 13px/1.25 "Arial Narrow", Arial, sans-serif;
+      color: rgba(244, 241, 232, 0.82);
+    }
+
+    .upgrade-card .rank {
+      display: inline-block;
+      margin-top: 8px;
+      color: var(--rival);
+      font: 900 13px/1 "Arial Narrow", Arial, sans-serif;
+      text-transform: uppercase;
+    }
+
+    .brief-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 16px 0 6px;
+    }
+
+    .brief-list div {
+      border-left: 5px solid var(--paint);
+      background: rgba(0, 0, 0, 0.48);
+      padding: 10px 12px;
+      font: 900 15px/1.25 "Arial Narrow", Arial, sans-serif;
+      text-transform: uppercase;
+    }
+
+    #mobile-controls {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: none;
+      justify-content: space-between;
+      align-items: end;
+      pointer-events: auto;
+      z-index: 12;
+    }
+
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(3, 54px);
+      grid-template-rows: repeat(2, 54px);
+      gap: 6px;
+      grid-template-areas: ". up ." "left down right";
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .touch {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border: 2px solid rgba(244, 241, 232, 0.6);
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      border-radius: 50%;
+      font: 900 15px/1 "Arial Narrow", Arial, sans-serif;
+    }
+
+    .touch.big { width: 72px; height: 72px; border-color: var(--crew); }
+    .touch.mid { width: 62px; height: 62px; border-color: var(--rival); }
+    .touch:active { background: rgba(255, 47, 125, 0.45); }
+    #up { grid-area: up; }
+    #left { grid-area: left; }
+    #down { grid-area: down; }
+    #right { grid-area: right; }
+
+    @media (max-width: 780px) {
+      #hud {
+        inset: 8px;
+        align-items: stretch;
+      }
+
+      .panel {
+        min-width: 0;
+        max-width: calc(50vw - 12px);
+        padding: 8px;
+      }
+
+      .brand { font-size: 21px; }
+      .line { font-size: 11px; gap: 8px; }
+      .meter { width: 118px; }
+      .callout { min-width: 0; font-size: 16px; }
+      .menu { margin-right: 0; }
+      .upgrade-grid { grid-template-columns: 1fr; }
+      .brief-list { grid-template-columns: 1fr; }
+      #mobile-controls { display: flex; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-shell">
+    <canvas id="game" width="1200" height="800"></canvas>
+
+    <div id="hud">
+      <div class="panel">
+        <div class="brand">Street Shooters</div>
+        <div class="line"><span>Level</span><span id="level">1</span></div>
+        <div class="line"><span>Upgrade Credits</span><span id="upgrade-credits">0</span></div>
+        <div class="line"><span>Crew Points</span><span id="score">0</span></div>
+        <div class="line"><span>Territory</span><span id="territory">0/9</span></div>
+        <div class="line"><span>Paint Cans</span><span id="cans">3</span></div>
+        <div class="line"><span>Ammo</span><span id="ammo">8</span></div>
+        <div class="line"><span>Crew</span><span id="crew">0</span></div>
+        <div class="line"><span>Health</span><span id="health-text">100</span></div>
+        <div class="meter"><div id="health-fill" class="fill"></div></div>
+        <div class="line"><span>Paint</span><span id="paint-text">100</span></div>
+        <div class="meter"><div id="paint-fill" class="fill"></div></div>
+        <div class="line"><span>Stamina</span><span id="stamina-text">100</span></div>
+        <div class="meter"><div id="stamina-fill" class="fill"></div></div>
+      </div>
+
+      <div class="panel right">
+        <div id="status" class="callout">Own the Block</div>
+        <div class="line"><span>Heat</span><span id="heat">1</span></div>
+        <div class="line"><span>Time Lost</span><span id="time-lost">0s</span></div>
+        <div class="line"><span>Controls</span><span>WASD / Space / F</span></div>
+        <div class="line quiet"><span>Help / Pause</span><span>H / P</span></div>
+        <div class="line quiet"><span>Tag</span><span>Hold Space</span></div>
+        <div class="line quiet"><span>Shoot</span><span>F</span></div>
+      </div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+      <div class="menu">
+        <h1>Street Shooters</h1>
+        <h2>Graffiti Turf Prototype</h2>
+        <p>Run the city, tag walls, hold territory, grab paint, recruit backup, fight rivals, and keep away from cops.</p>
+        <p class="warning">Finish each level task to earn upgrade credits. Spend them on character skills, crew strength, headquarters perks, and unlocked features.</p>
+        <p class="warning">Busted means jail time and lost items. Dropped means hospital time. Rivals keep spraying while you are gone.</p>
+        <p class="quiet">Move with WASD or arrows. Hold Space to paint. Shift sprints. Press F to shoot if you have ammo. Walk into cans, med packs, weapons, and recruits.</p>
+        <div id="skin-row" class="skin-row"></div>
+        <div class="menu-actions">
+          <button id="start-button" disabled>Loading Art</button>
+          <button id="continue-button" class="secondary-btn" disabled>Continue</button>
+          <button id="new-run-button" class="secondary-btn">New Run</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="result-screen" class="overlay">
+      <div class="menu">
+        <h1 id="result-title">City Claimed</h1>
+        <h2 id="result-subtitle">Your crew owns the night.</h2>
+        <p id="result-copy">Replay the block and try to hold every wall longer.</p>
+        <div id="upgrade-grid" class="upgrade-grid"></div>
+        <button id="restart-button">Next Level</button>
+      </div>
+    </div>
+
+    <div id="help-screen" class="overlay">
+      <div class="menu">
+        <h1>Field Guide</h1>
+        <h2>Beta Rules</h2>
+        <p>Claim walls, hold territory, collect supplies, recruit backup, and finish each level objective before the city takes the block back.</p>
+        <div class="brief-list">
+          <div>WASD / arrows move through streets and alleys.</div>
+          <div>Hold Space near a wall to paint. Bigger walls take longer.</div>
+          <div>F fires your weapon. Ammo is limited, so make shots count.</div>
+          <div>Shift sprints. Paint cans, health, ammo, weapons, and recruits glow on the map.</div>
+          <div>Police bust you and seize items. Rivals hurt you and spray over your work.</div>
+          <div>Level credits upgrade character skills, gang backup, HQ perks, and weapons.</div>
+        </div>
+        <div class="menu-actions">
+          <button id="resume-button">Back To The Block</button>
+          <button id="save-button" class="secondary-btn">Save Progress</button>
+          <button id="mute-button" class="secondary-btn">Mute Audio</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobile-controls">
+      <div class="pad">
+        <div id="up" class="touch">UP</div>
+        <div id="left" class="touch">LEFT</div>
+        <div id="down" class="touch">DOWN</div>
+        <div id="right" class="touch">RIGHT</div>
+      </div>
+      <div class="actions">
+        <div id="sprint" class="touch mid">RUN</div>
+        <div id="shoot" class="touch mid">FIRE</div>
+        <div id="tag" class="touch big">TAG</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    const WIDTH = canvas.width;
+    const HEIGHT = canvas.height;
+    const WORLD = { w: 2508, h: 2508 };
+    const TAU = Math.PI * 2;
+
+    const assetList = {
+      city: "Codex Image Sep 2, 2026, 02_41_24 AM.png",
+      title: "ChatGPT Image Aug 13, 2026, 01_27_42 AM (2).png",
+      player: "hoodie2.png",
+      hoodie1: "hoodie1.png",
+      hoodie2: "hoodie2.png",
+      hoodie3: "hoodie3.png",
+      ghost: "ghost1.png",
+      enemy: "404kid1.png"
+    };
+
+    const assets = {};
+    const keys = {
+      w: false, a: false, s: false, d: false,
+      ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false,
+      Shift: false, " ": false, f: false
+    };
+
+    const ui = {
+      start: document.getElementById("start-screen"),
+      result: document.getElementById("result-screen"),
+      startButton: document.getElementById("start-button"),
+      continueButton: document.getElementById("continue-button"),
+      newRunButton: document.getElementById("new-run-button"),
+      restartButton: document.getElementById("restart-button"),
+      level: document.getElementById("level"),
+      upgradeCredits: document.getElementById("upgrade-credits"),
+      score: document.getElementById("score"),
+      territory: document.getElementById("territory"),
+      cans: document.getElementById("cans"),
+      ammo: document.getElementById("ammo"),
+      crew: document.getElementById("crew"),
+      healthText: document.getElementById("health-text"),
+      paintText: document.getElementById("paint-text"),
+      staminaText: document.getElementById("stamina-text"),
+      healthFill: document.getElementById("health-fill"),
+      paintFill: document.getElementById("paint-fill"),
+      staminaFill: document.getElementById("stamina-fill"),
+      status: document.getElementById("status"),
+      heat: document.getElementById("heat"),
+      timeLost: document.getElementById("time-lost"),
+      resultTitle: document.getElementById("result-title"),
+      resultSubtitle: document.getElementById("result-subtitle"),
+      resultCopy: document.getElementById("result-copy"),
+      upgradeGrid: document.getElementById("upgrade-grid"),
+      help: document.getElementById("help-screen"),
+      resumeButton: document.getElementById("resume-button"),
+      saveButton: document.getElementById("save-button"),
+      muteButton: document.getElementById("mute-button"),
+      skinRow: document.getElementById("skin-row")
+    };
+
+    let gameState = "start";
+    let lastTime = 0;
+    let messageTimer = 0;
+    let lastShot = 0;
+    let screenShake = 0;
+    let flash = 0;
+    let audioCtx = null;
+    let musicTimer = null;
+    let audioMuted = localStorage.getItem("streetShootersMuted") === "1";
+    const camera = { x: 0, y: 0, tx: 0, ty: 0 };
+
+    const player = {
+      x: 170, y: 188, w: 54, h: 54, speed: 225, facing: 0,
+      health: 100, paint: 100, cans: 3, ammo: 8, weapon: true,
+      stamina: 100, score: 0, heat: 1, timeLost: 0, tagging: null, crew: []
+    };
+
+    const progression = {
+      level: 1,
+      upgradeCredits: 0,
+      pendingCredits: 0,
+      round: 1,
+      upgrades: {
+        character: 0,
+        crew: 0,
+        hq: 0,
+        gear: 0
+      },
+      unlocks: {
+        sprintKit: false,
+        crewOrders: false,
+        safehouseCache: false,
+        armorPlates: false
+      },
+      selectedSkin: "hoodie2"
+    };
+
+    const SAVE_KEY = "streetShootersBetaSave";
+
+    const characterSkins = [
+      { id: "hoodie2", name: "Purple Hoodie", asset: "hoodie2", perk: "Balanced writer" },
+      { id: "hoodie1", name: "Runner", asset: "hoodie1", perk: "+ speed feel" },
+      { id: "hoodie3", name: "Heavy Hoodie", asset: "hoodie3", perk: "+ tough look" },
+      { id: "ghost", name: "Ghost", asset: "ghost", perk: "rare beta skin" }
+    ];
+
+    const levelPlan = [
+      { name: "Ink Yard", district: "Canal Ink Yard", mission: "Starter Turf", territory: 3, score: 360, credits: 2, unlock: "sprintKit", text: "Claim 3 walls and bank 360 crew points near the canal." },
+      { name: "Neon Market", district: "Neon Market Strip", mission: "Night Route", territory: 5, score: 720, credits: 2, unlock: "crewOrders", text: "Hold 5 walls while rivals start painting back through the market." },
+      { name: "Railcut", district: "Railcut Backlots", mission: "Crew Pressure", territory: 7, score: 1120, credits: 3, unlock: "safehouseCache", text: "Control 7 walls and build enough points to open HQ upgrades." },
+      { name: "Downtown Crown", district: "Downtown Crown", mission: "Whole District", territory: 9, score: 1600, credits: 3, unlock: "armorPlates", text: "Own every wall, survive police heat, and lock down the district." }
+    ];
+
+    const upgradeCatalog = [
+      { id: "character", name: "Character Skills", unlockLevel: 1, max: 5, stat: "Speed, stamina, tagging focus", desc: "Move faster, sprint longer, and paint big walls quicker." },
+      { id: "crew", name: "Gang Backup", unlockLevel: 1, max: 5, stat: "Crew damage, loyalty, follow speed", desc: "Crew members fight harder, stay alive longer, and help claim walls." },
+      { id: "hq", name: "Headquarters", unlockLevel: 3, max: 5, stat: "Stashes, recovery, rival defense", desc: "Start with more supplies and lose fewer items after jail or hospital." },
+      { id: "gear", name: "Weapons & Armor", unlockLevel: 2, max: 5, stat: "Ammo, armor, weapon handling", desc: "Carry more ammo, shoot faster, and take less damage from rivals." }
+    ];
+
+    const roads = [
+      { x: 0, y: 150, w: WORLD.w, h: 130 }, { x: 0, y: 555, w: WORLD.w, h: 124 },
+      { x: 0, y: 960, w: WORLD.w, h: 124 }, { x: 0, y: 1365, w: WORLD.w, h: 124 },
+      { x: 0, y: 1770, w: WORLD.w, h: 124 }, { x: 0, y: 2175, w: WORLD.w, h: 130 },
+      { x: 150, y: 0, w: 130, h: WORLD.h }, { x: 555, y: 0, w: 124, h: WORLD.h },
+      { x: 960, y: 0, w: 124, h: WORLD.h }, { x: 1365, y: 0, w: 124, h: WORLD.h },
+      { x: 1770, y: 0, w: 124, h: WORLD.h }, { x: 2175, y: 0, w: 130, h: WORLD.h }
+    ];
+
+    const walls = [
+      { id: 1, x: 324, y: 300, w: 160, h: 36, size: 1, name: "Corner Throw-Up" },
+      { id: 2, x: 720, y: 528, w: 46, h: 210, size: 2, name: "Alley Burner" },
+      { id: 3, x: 1120, y: 908, w: 220, h: 42, size: 2, name: "Rooftop Edge" },
+      { id: 4, x: 1510, y: 690, w: 48, h: 250, size: 3, name: "Trainline Wall" },
+      { id: 5, x: 1915, y: 1120, w: 235, h: 44, size: 2, name: "Shop Shutters" },
+      { id: 6, x: 295, y: 1518, w: 250, h: 44, size: 3, name: "Warehouse Mural" },
+      { id: 7, x: 735, y: 1896, w: 46, h: 245, size: 3, name: "Backlot Giant" },
+      { id: 8, x: 1508, y: 1920, w: 260, h: 44, size: 3, name: "Bridge Burner" },
+      { id: 9, x: 1948, y: 1514, w: 48, h: 230, size: 2, name: "Market Alley" }
+    ].map((wall) => ({
+      ...wall,
+      owner: "none",
+      progress: 0,
+      hold: 0,
+      contested: 0,
+      required: 2.4 + wall.size * 1.55,
+      value: 8 + wall.size * 7
+    }));
+
+    const pickups = [
+      { type: "paint", x: 436, y: 612, active: true },
+      { type: "paint", x: 1014, y: 1455, active: true },
+      { type: "paint", x: 2245, y: 1815, active: true },
+      { type: "health", x: 1610, y: 1022, active: true },
+      { type: "health", x: 610, y: 2208, active: true },
+      { type: "ammo", x: 1260, y: 620, active: true },
+      { type: "ammo", x: 2028, y: 1030, active: true },
+      { type: "weapon", x: 2220, y: 660, active: true },
+      { type: "recruit", x: 875, y: 985, active: true },
+      { type: "recruit", x: 1688, y: 1855, active: true }
+    ];
+
+    const enemies = [
+      { kind: "cop", x: 1820, y: 220, spawnX: 1820, spawnY: 220, w: 54, h: 54, speed: 130, chase: 265, health: 120, maxHealth: 120, state: "patrol", path: [{x: 1820, y: 220}, {x: 220, y: 220}, {x: 220, y: 1820}, {x: 2220, y: 1820}, {x: 2220, y: 220}], step: 0, attackTimer: 0 },
+      { kind: "cop", x: 1050, y: 2220, spawnX: 1050, spawnY: 2220, w: 54, h: 54, speed: 145, chase: 280, health: 120, maxHealth: 120, state: "patrol", path: [{x: 1050, y: 2220}, {x: 2220, y: 2220}, {x: 2220, y: 980}, {x: 1050, y: 980}], step: 0, attackTimer: 0 },
+      { kind: "rival", x: 745, y: 610, spawnX: 745, spawnY: 610, w: 54, h: 54, speed: 105, chase: 210, health: 75, maxHealth: 75, state: "patrol", targetWall: 1, attackTimer: 0 },
+      { kind: "rival", x: 1920, y: 1480, spawnX: 1920, spawnY: 1480, w: 54, h: 54, speed: 115, chase: 215, health: 82, maxHealth: 82, state: "patrol", targetWall: 4, attackTimer: 0 },
+      { kind: "rival", x: 520, y: 1900, spawnX: 520, spawnY: 1900, w: 54, h: 54, speed: 118, chase: 222, health: 88, maxHealth: 88, state: "patrol", targetWall: 7, attackTimer: 0 }
+    ];
+
+    const bullets = [];
+    const sprays = [];
+    const particles = [];
+    const ripples = [];
+    const rain = Array.from({ length: 90 }, (_, i) => ({
+      x: (i * 173) % WORLD.w,
+      y: (i * 421) % WORLD.h,
+      speed: 560 + (i % 9) * 30,
+      len: 12 + (i % 5) * 6,
+      drift: -72 - (i % 4) * 18
+    }));
+
+    function loadAssets() {
+      const entries = Object.entries(assetList);
+      let loaded = 0;
+      entries.forEach(([key, src]) => {
+        const image = new Image();
+        image.onload = image.onerror = () => {
+          loaded += 1;
+          if (loaded === entries.length) {
+            ui.startButton.disabled = false;
+            ui.startButton.textContent = "Hit The Streets";
+            renderSkinChoices();
+            refreshContinueButton();
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("autostart") === "1" || params.get("levelup") === "1") startGame();
+            if (params.get("levelup") === "1") {
+              const target = currentLevelConfig();
+              walls.slice(0, target.territory).forEach((wall) => wall.owner = "crew");
+              player.score = target.score;
+              completeLevel();
+            }
+          }
+        };
+        image.src = src;
+        assets[key] = image;
+      });
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      const ax = a.x + (a.w || 0) / 2;
+      const ay = a.y + (a.h || 0) / 2;
+      const bx = b.x + (b.w || 0) / 2;
+      const by = b.y + (b.h || 0) / 2;
+      return Math.hypot(ax - bx, ay - by);
+    }
+
+    function intersects(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function canStand(rect) {
+      return roads.some((road) => intersects(rect, road));
+    }
+
+    function moveEntity(entity, dx, dy) {
+      const nextX = { x: entity.x + dx, y: entity.y, w: entity.w, h: entity.h };
+      const nextY = { x: entity.x, y: entity.y + dy, w: entity.w, h: entity.h };
+      if (nextX.x >= 0 && nextX.x + entity.w <= WORLD.w && canStand(nextX)) entity.x += dx;
+      if (nextY.y >= 0 && nextY.y + entity.h <= WORLD.h && canStand(nextY)) entity.y += dy;
+    }
+
+    function setStatus(text, tone = "") {
+      ui.status.textContent = text;
+      ui.status.className = `callout ${tone}`;
+      messageTimer = 2.2;
+    }
+
+    function ensureAudio() {
+      if (audioMuted) return null;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playTone(freq, duration = 0.08, type = "square", gainValue = 0.04) {
+      const ctxAudio = ensureAudio();
+      if (!ctxAudio) return;
+      const osc = ctxAudio.createOscillator();
+      const gain = ctxAudio.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctxAudio.currentTime);
+      gain.gain.setValueAtTime(gainValue, ctxAudio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctxAudio.currentTime + duration);
+      osc.connect(gain).connect(ctxAudio.destination);
+      osc.start();
+      osc.stop(ctxAudio.currentTime + duration);
+    }
+
+    function playCue(name) {
+      if (name === "tag") playTone(210, 0.06, "sawtooth", 0.035);
+      if (name === "claim") { playTone(330, 0.09, "square", 0.045); setTimeout(() => playTone(495, 0.12, "square", 0.04), 80); }
+      if (name === "shot") playTone(90, 0.055, "sawtooth", 0.07);
+      if (name === "hit") playTone(130, 0.11, "triangle", 0.065);
+      if (name === "pickup") playTone(620, 0.08, "sine", 0.045);
+      if (name === "level") { playTone(420, 0.1, "square", 0.045); setTimeout(() => playTone(640, 0.13, "square", 0.045), 100); }
+    }
+
+    function startMusic() {
+      if (audioMuted || musicTimer) return;
+      let step = 0;
+      musicTimer = setInterval(() => {
+        if (gameState !== "play") return;
+        const bass = [55, 55, 82, 73, 55, 98, 82, 73][step % 8];
+        playTone(bass, 0.08, "triangle", 0.018);
+        if (step % 4 === 2) playTone(220 + progression.level * 18, 0.035, "square", 0.012);
+        step += 1;
+      }, 330);
+    }
+
+    function updateMuteButton() {
+      ui.muteButton.textContent = audioMuted ? "Unmute Audio" : "Mute Audio";
+    }
+
+    function toggleMute() {
+      audioMuted = !audioMuted;
+      localStorage.setItem("streetShootersMuted", audioMuted ? "1" : "0");
+      if (audioMuted && musicTimer) {
+        clearInterval(musicTimer);
+        musicTimer = null;
+      }
+      updateMuteButton();
+    }
+
+    function saveProgress() {
+      const save = {
+        level: progression.level,
+        upgradeCredits: progression.upgradeCredits,
+        upgrades: progression.upgrades,
+        unlocks: progression.unlocks,
+        selectedSkin: progression.selectedSkin
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      refreshContinueButton();
+      setStatus("Progress Saved", "warning");
+    }
+
+    function loadProgress() {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      try {
+        const save = JSON.parse(raw);
+        progression.level = clamp(Number(save.level) || 1, 1, levelPlan.length);
+        progression.upgradeCredits = Number(save.upgradeCredits) || 0;
+        progression.upgrades = { character: 0, crew: 0, hq: 0, gear: 0, ...(save.upgrades || {}) };
+        progression.unlocks = { sprintKit: false, crewOrders: false, safehouseCache: false, armorPlates: false, ...(save.unlocks || {}) };
+        progression.selectedSkin = save.selectedSkin || "hoodie2";
+        applyUnlocks();
+        renderSkinChoices();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function resetProgression() {
+      progression.level = 1;
+      progression.upgradeCredits = 0;
+      progression.pendingCredits = 0;
+      progression.round = 1;
+      progression.upgrades = { character: 0, crew: 0, hq: 0, gear: 0 };
+      progression.unlocks = { sprintKit: false, crewOrders: false, safehouseCache: false, armorPlates: false };
+      applyUnlocks();
+      saveProgress();
+    }
+
+    function refreshContinueButton() {
+      ui.continueButton.disabled = !localStorage.getItem(SAVE_KEY);
+    }
+
+    function renderSkinChoices() {
+      ui.skinRow.innerHTML = "";
+      characterSkins.forEach((skin) => {
+        const card = document.createElement("div");
+        card.className = `skin-card ${progression.selectedSkin === skin.id ? "active" : ""}`;
+        card.textContent = `${skin.name} - ${skin.perk}`;
+        card.addEventListener("click", () => {
+          progression.selectedSkin = skin.id;
+          renderSkinChoices();
+          saveProgress();
+        });
+        ui.skinRow.appendChild(card);
+      });
+    }
+
+    function burst(x, y, color, count = 12, power = 180) {
+      for (let i = 0; i < count; i += 1) {
+        const angle = Math.random() * TAU;
+        const speed = power * (0.28 + Math.random() * 0.72);
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: 2 + Math.random() * 6,
+          life: 0.35 + Math.random() * 0.45,
+          maxLife: 0.8,
+          color
+        });
+      }
+    }
+
+    function addRipple(x, y, color) {
+      ripples.push({ x, y, r: 8, life: 0.55, color });
+    }
+
+    function currentLevelConfig() {
+      return levelPlan[Math.min(progression.level - 1, levelPlan.length - 1)];
+    }
+
+    function getStats() {
+      return {
+        speed: 225 + progression.upgrades.character * 18,
+        maxHealth: 100 + progression.upgrades.gear * 10,
+        maxPaint: 100 + progression.upgrades.hq * 12,
+        maxStamina: 100 + progression.upgrades.character * 14,
+        tagBoost: 1 + progression.upgrades.character * 0.08 + progression.upgrades.hq * 0.04,
+        crewBoost: 1 + progression.upgrades.crew * 0.18,
+        damageTaken: Math.max(0.52, 1 - progression.upgrades.gear * 0.08),
+        shotCooldown: Math.max(130, 240 - progression.upgrades.gear * 20),
+        startCans: 3 + Math.floor(progression.upgrades.hq / 2),
+        startAmmo: 8 + progression.upgrades.gear * 3,
+        recruitHealth: 60 + progression.upgrades.crew * 12
+      };
+    }
+
+    function applyUnlocks() {
+      progression.unlocks.sprintKit = progression.level >= 2 || progression.upgrades.character >= 1;
+      progression.unlocks.crewOrders = progression.level >= 3 || progression.upgrades.crew >= 2;
+      progression.unlocks.safehouseCache = progression.level >= 4 || progression.upgrades.hq >= 2;
+      progression.unlocks.armorPlates = progression.level >= 5 || progression.upgrades.gear >= 3;
+    }
+
+    function startGame() {
+      gameState = "play";
+      ui.start.style.display = "none";
+      ui.result.style.display = "none";
+      ui.help.style.display = "none";
+      ensureAudio();
+      startMusic();
+      applyUnlocks();
+      resetWorld();
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function openHelp() {
+      if (gameState === "start" || gameState === "result" || gameState === "upgrade") return;
+      if (gameState === "play") gameState = "pause";
+      ui.help.style.display = "flex";
+    }
+
+    function resumeGame() {
+      ui.help.style.display = "none";
+      if (gameState === "pause") {
+        gameState = "play";
+        startMusic();
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      }
+    }
+
+    function resetWorld() {
+      const stats = getStats();
+      Object.assign(player, {
+        x: 170,
+        y: 188,
+        health: stats.maxHealth,
+        paint: stats.maxPaint,
+        cans: stats.startCans + (progression.unlocks.safehouseCache ? 1 : 0),
+        ammo: stats.startAmmo + (progression.unlocks.safehouseCache ? 4 : 0),
+        weapon: true,
+        stamina: stats.maxStamina,
+        score: 0,
+        heat: 1 + Math.max(0, progression.level - 1) * 0.25,
+        timeLost: 0,
+        tagging: null,
+        crew: []
+      });
+      walls.forEach((wall) => {
+        wall.owner = "none";
+        wall.progress = 0;
+        wall.hold = 0;
+        wall.contested = 0;
+      });
+      pickups.forEach((pickup) => pickup.active = true);
+      enemies.forEach((enemy) => {
+        enemy.x = enemy.spawnX;
+        enemy.y = enemy.spawnY;
+        enemy.health = enemy.maxHealth;
+        enemy.state = "patrol";
+        enemy.step = 0;
+        enemy.attackTimer = 0;
+      });
+      camera.x = clamp(player.x + player.w / 2 - WIDTH / 2, 0, WORLD.w - WIDTH);
+      camera.y = clamp(player.y + player.h / 2 - HEIGHT / 2, 0, WORLD.h - HEIGHT);
+      camera.tx = camera.x;
+      camera.ty = camera.y;
+      screenShake = 0;
+      flash = 0;
+      bullets.length = 0;
+      sprays.length = 0;
+      particles.length = 0;
+      ripples.length = 0;
+      setStatus("Own the Block");
+    }
+
+    function loseTime(kind) {
+      const jail = kind === "jail";
+      const stats = getStats();
+      const seconds = jail ? 22 : 14;
+      player.timeLost += seconds;
+      player.x = jail ? 215 : 620;
+      player.y = jail ? 218 : 2205;
+      player.health = jail ? stats.maxHealth * 0.72 : stats.maxHealth * 0.58;
+      player.stamina = stats.maxStamina * 0.8;
+      player.paint = jail ? stats.maxPaint * 0.2 : stats.maxPaint * 0.45;
+      player.cans = jail ? Math.max(0, progression.upgrades.hq - 2) : Math.max(0, player.cans - 1);
+      player.ammo = jail ? Math.max(0, progression.upgrades.gear * 2) : Math.max(0, player.ammo - 4);
+      const crewLoss = progression.upgrades.hq >= 3 ? 0 : 1;
+      player.crew = player.crew.slice(0, Math.max(0, player.crew.length - crewLoss));
+      player.tagging = null;
+      player.heat = Math.max(1, player.heat - 1);
+      screenShake = jail ? 22 : 14;
+      flash = jail ? 0.8 : 0.55;
+      burst(player.x + player.w / 2, player.y + player.h / 2, jail ? "#62a8ff" : "#ff4848", 28, 260);
+      enemies.forEach((enemy) => {
+        enemy.state = "patrol";
+        enemy.attackTimer = 0;
+      });
+      for (let i = 0; i < Math.ceil(seconds / 4); i += 1) {
+        const owned = walls.filter((wall) => wall.owner === "crew");
+        if (owned.length) owned[Math.floor(Math.random() * owned.length)].owner = "rival";
+      }
+      playCue(jail ? "hit" : "hit");
+      saveProgress();
+      setStatus(jail ? "Busted: Items Seized" : "Hospital: Crew Lost Ground", "danger");
+    }
+
+    function update(dt) {
+      if (gameState !== "play") return;
+      messageTimer = Math.max(0, messageTimer - dt);
+      const target = currentLevelConfig();
+      if (messageTimer <= 0) ui.status.textContent = player.tagging ? `Painting ${player.tagging.name}` : `Level ${progression.level}: ${target.territory} Walls / ${target.score} Pts`;
+      updatePlayer(dt);
+      updateCrew(dt);
+      updateEnemies(dt);
+      updateBullets(dt);
+      updateTerritory(dt);
+      updateEffects(dt);
+      updateCamera();
+      updateHud();
+      const owned = walls.filter((wall) => wall.owner === "crew").length;
+      if (owned >= target.territory && player.score >= target.score) {
+        completeLevel();
+      }
+    }
+
+    function updatePlayer(dt) {
+      let dx = 0;
+      let dy = 0;
+      if (keys.w || keys.ArrowUp) dy -= 1;
+      if (keys.s || keys.ArrowDown) dy += 1;
+      if (keys.a || keys.ArrowLeft) dx -= 1;
+      if (keys.d || keys.ArrowRight) dx += 1;
+      const moving = dx !== 0 || dy !== 0;
+      if (moving) {
+        const len = Math.hypot(dx, dy);
+        dx /= len;
+        dy /= len;
+        player.facing = Math.atan2(dy, dx);
+      }
+      const sprinting = keys.Shift && moving && player.stamina > 0;
+      const stats = getStats();
+      player.speed = stats.speed;
+      const sprintMultiplier = progression.unlocks.sprintKit ? 1.72 : 1.55;
+      const speed = player.speed * (sprinting ? sprintMultiplier : 1);
+      if (sprinting) player.stamina = Math.max(0, player.stamina - 28 * dt);
+      else player.stamina = Math.min(stats.maxStamina, player.stamina + (16 + progression.upgrades.character * 2) * dt);
+      if (moving) {
+        player.tagging = null;
+        moveEntity(player, dx * speed * dt, dy * speed * dt);
+      }
+      if (keys.f) shoot();
+      updatePickups();
+      updateTagging(dt, moving);
+      if (player.health <= 0) loseTime("hospital");
+    }
+
+    function updateTagging(dt, moving) {
+      const nearWall = walls.find((wall) => distance(player, wall) < 86);
+      if (!nearWall || moving || !keys[" "]) {
+        if (!keys[" "]) player.tagging = null;
+        return;
+      }
+      if (player.paint <= 0) {
+        if (player.cans > 0) {
+          player.cans -= 1;
+          player.paint = getStats().maxPaint;
+          setStatus("New Can Shaken", "warning");
+        } else {
+          setStatus("Out of Paint", "danger");
+          return;
+        }
+      }
+      player.tagging = nearWall;
+      const stats = getStats();
+      const crewBoost = 1 + player.crew.length * 0.16 * stats.crewBoost;
+      nearWall.progress += dt * crewBoost * stats.tagBoost;
+      player.paint = Math.max(0, player.paint - dt * (6 + nearWall.size * 2.2));
+      player.heat = Math.min(5, player.heat + dt * 0.05 * nearWall.size);
+      if (Math.random() < dt * 15) {
+        const sx = nearWall.x + Math.random() * nearWall.w;
+        const sy = nearWall.y + Math.random() * nearWall.h;
+        sprays.push({
+          x: sx,
+          y: sy,
+          life: 0.45,
+          color: Math.random() > 0.5 ? "#ff2f7d" : "#00e0ff"
+        });
+        playCue("tag");
+        burst(sx, sy, Math.random() > 0.5 ? "#ff2f7d" : "#00e0ff", 3, 42);
+      }
+      if (nearWall.progress >= nearWall.required) {
+        nearWall.owner = "crew";
+        nearWall.progress = 0;
+        nearWall.hold = 0;
+        player.score += 55 + nearWall.size * 35;
+        player.heat = Math.min(5, player.heat + nearWall.size * 0.35);
+        screenShake = 8 + nearWall.size * 2;
+        addRipple(nearWall.x + nearWall.w / 2, nearWall.y + nearWall.h / 2, "#ff2f7d");
+        burst(nearWall.x + nearWall.w / 2, nearWall.y + nearWall.h / 2, "#00e0ff", 18 + nearWall.size * 4, 180);
+        playCue("claim");
+        setStatus(`${nearWall.name} Claimed`, "warning");
+      }
+    }
+
+    function updatePickups() {
+      pickups.forEach((pickup) => {
+        if (!pickup.active) return;
+        if (distance(player, { x: pickup.x - 18, y: pickup.y - 18, w: 36, h: 36 }) > 48) return;
+        pickup.active = false;
+        if (pickup.type === "paint") {
+          player.cans += 2;
+          player.paint = getStats().maxPaint;
+          setStatus("Paint Restocked", "warning");
+        }
+        if (pickup.type === "health") {
+          player.health = Math.min(getStats().maxHealth, player.health + 42);
+          setStatus("Patched Up");
+        }
+        if (pickup.type === "ammo") {
+          player.ammo += 10;
+          setStatus("Ammo Found", "warning");
+        }
+        if (pickup.type === "weapon") {
+          player.weapon = true;
+          player.ammo += 6;
+          setStatus("Weapon Picked Up", "warning");
+        }
+        if (pickup.type === "recruit") {
+          player.crew.push({ x: player.x - 45, y: player.y + 45, w: 48, h: 48, health: getStats().recruitHealth, facing: 0 });
+          setStatus("Crew Member Recruited", "warning");
+        }
+        playCue("pickup");
+      });
+    }
+
+    function updateCrew(dt) {
+      player.crew.forEach((mate, index) => {
+        const target = index === 0 ? player : player.crew[index - 1];
+        const gap = distance(mate, target);
+        if (gap > 62) {
+          const angle = Math.atan2(target.y - mate.y, target.x - mate.x);
+          mate.facing = angle;
+          moveEntity(mate, Math.cos(angle) * 190 * dt, Math.sin(angle) * 190 * dt);
+        }
+        const rival = enemies.find((enemy) => enemy.kind === "rival" && enemy.health > 0 && distance(mate, enemy) < 70);
+        if (rival) {
+          const stats = getStats();
+          rival.health -= 22 * stats.crewBoost * dt;
+          mate.health -= Math.max(2, 6 - progression.upgrades.crew) * dt;
+          if (rival.health <= 0) respawnEnemy(rival, 7);
+        }
+      });
+      player.crew = player.crew.filter((mate) => mate.health > 0);
+    }
+
+    function updateEnemies(dt) {
+      enemies.forEach((enemy) => {
+        if (enemy.health <= 0) return;
+        enemy.attackTimer = Math.max(0, enemy.attackTimer - dt);
+        const closeToPlayer = distance(enemy, player);
+        const chaseRange = enemy.kind === "cop" ? 360 + player.heat * 55 : 285;
+        if (enemy.kind === "cop" && (closeToPlayer < chaseRange || player.tagging && closeToPlayer < 640)) enemy.state = "chase";
+        else if (enemy.kind === "rival" && closeToPlayer < chaseRange) enemy.state = "chase";
+        else if (enemy.state === "chase" && closeToPlayer > chaseRange * 1.5) enemy.state = "patrol";
+        if (enemy.state === "chase") {
+          const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+          moveEntity(enemy, Math.cos(angle) * enemy.chase * dt, Math.sin(angle) * enemy.chase * dt);
+          enemy.facing = angle;
+          if (closeToPlayer < 48 && enemy.attackTimer <= 0) {
+            if (enemy.kind === "cop") loseTime("jail");
+            else {
+              player.health -= 16 * getStats().damageTaken;
+              enemy.attackTimer = 0.8;
+              screenShake = 10;
+              flash = 0.3;
+              burst(player.x + player.w / 2, player.y + player.h / 2, "#ff4848", 12, 210);
+              setStatus("Rival Attack", "danger");
+            }
+          }
+        } else if (enemy.kind === "cop") patrolPath(enemy, dt);
+        else rivalTag(enemy, dt);
+      });
+    }
+
+    function patrolPath(enemy, dt) {
+      const target = enemy.path[enemy.step];
+      const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+      enemy.facing = angle;
+      moveEntity(enemy, Math.cos(angle) * enemy.speed * dt, Math.sin(angle) * enemy.speed * dt);
+      if (Math.hypot(target.x - enemy.x, target.y - enemy.y) < 16) enemy.step = (enemy.step + 1) % enemy.path.length;
+    }
+
+    function rivalTag(enemy, dt) {
+      const target = walls[enemy.targetWall % walls.length];
+      const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+      enemy.facing = angle;
+      if (distance(enemy, target) > 70) {
+        moveEntity(enemy, Math.cos(angle) * enemy.speed * dt, Math.sin(angle) * enemy.speed * dt);
+        return;
+      }
+      target.contested += dt;
+      if (Math.random() < dt * 10) sprays.push({ x: target.x + Math.random() * target.w, y: target.y + Math.random() * target.h, life: 0.35, color: "#ffd43b" });
+      if (target.contested > 3.8) {
+        target.owner = "rival";
+        target.contested = 0;
+        target.progress = 0;
+        enemy.targetWall = Math.floor(Math.random() * walls.length);
+        addRipple(target.x + target.w / 2, target.y + target.h / 2, "#ffd43b");
+        burst(target.x + target.w / 2, target.y + target.h / 2, "#ffd43b", 18, 155);
+        setStatus("Rivals Painted Over You", "danger");
+      }
+    }
+
+    function shoot() {
+      const now = performance.now();
+      if (!player.weapon || player.ammo <= 0 || now - lastShot < getStats().shotCooldown) return;
+      player.ammo -= 1;
+      lastShot = now;
+      screenShake = 4;
+      playCue("shot");
+      burst(player.x + player.w / 2 + Math.cos(player.facing) * 26, player.y + player.h / 2 + Math.sin(player.facing) * 26, "#fff3a0", 7, 230);
+      bullets.push({
+        x: player.x + player.w / 2,
+        y: player.y + player.h / 2,
+        vx: Math.cos(player.facing) * 760,
+        vy: Math.sin(player.facing) * 760,
+        life: 0.62
+      });
+    }
+
+    function completeLevel() {
+      const target = currentLevelConfig();
+      const completedLevel = progression.level;
+      gameState = "upgrade";
+      progression.pendingCredits = target.credits;
+      progression.upgradeCredits += target.credits;
+      progression.round += 1;
+      progression.level += 1;
+      if (target.unlock) progression.unlocks[target.unlock] = true;
+      applyUnlocks();
+      if (completedLevel >= levelPlan.length) {
+        gameState = "result";
+        ui.resultTitle.textContent = "Beta Complete";
+        ui.resultSubtitle.textContent = "District cleared. Your crew owns the night.";
+        ui.resultCopy.textContent = `Final run: ${Math.floor(player.score)} crew points, ${player.timeLost}s lost, ${progression.upgradeCredits} unspent upgrade credits. Replay to test a different upgrade path.`;
+        ui.upgradeGrid.innerHTML = "";
+        ui.upgradeGrid.style.display = "none";
+        ui.restartButton.textContent = "Start New Beta Run";
+        progression.level = 1;
+        progression.upgradeCredits = 0;
+        progression.pendingCredits = 0;
+        progression.upgrades = { character: 0, crew: 0, hq: 0, gear: 0 };
+        applyUnlocks();
+        saveProgress();
+        playCue("level");
+        ui.result.style.display = "flex";
+        return;
+      }
+      ui.resultTitle.textContent = `Level ${completedLevel} Complete`;
+      ui.resultSubtitle.textContent = `${target.district} cleared. ${target.credits} upgrade credits earned.`;
+      ui.resultCopy.textContent = `Choose where to spend your upgrade credits. New task for ${currentLevelConfig().district}: ${currentLevelConfig().text}`;
+      ui.upgradeGrid.style.display = "grid";
+      ui.restartButton.textContent = progression.upgradeCredits > 0 ? "Save Credits & Next Level" : "Next Level";
+      renderUpgradeChoices();
+      saveProgress();
+      playCue("level");
+      ui.result.style.display = "flex";
+      updateHud();
+    }
+
+    function renderUpgradeChoices() {
+      ui.upgradeGrid.innerHTML = "";
+      upgradeCatalog.forEach((upgrade) => {
+        const rank = progression.upgrades[upgrade.id];
+        const locked = progression.level < upgrade.unlockLevel;
+        const maxed = rank >= upgrade.max;
+        const card = document.createElement("div");
+        card.className = `upgrade-card ${locked || maxed || progression.upgradeCredits <= 0 ? "locked" : ""}`;
+        card.innerHTML = `
+          <h3>${upgrade.name}</h3>
+          <p>${locked ? `Unlocks after Level ${upgrade.unlockLevel - 1}.` : upgrade.desc}</p>
+          <span class="rank">Rank ${rank}/${upgrade.max} - ${upgrade.stat}</span>
+        `;
+        card.addEventListener("click", () => buyUpgrade(upgrade.id));
+        ui.upgradeGrid.appendChild(card);
+      });
+    }
+
+    function buyUpgrade(id) {
+      const upgrade = upgradeCatalog.find((item) => item.id === id);
+      if (!upgrade || progression.level < upgrade.unlockLevel || progression.upgrades[id] >= upgrade.max || progression.upgradeCredits <= 0) return;
+      progression.upgradeCredits -= 1;
+      progression.upgrades[id] += 1;
+      applyUnlocks();
+      screenShake = 7;
+      flash = 0.25;
+      setStatus(`${upgrade.name} Upgraded`, "warning");
+      saveProgress();
+      playCue("pickup");
+      renderUpgradeChoices();
+      updateHud();
+    }
+
+    function nextLevel() {
+      if (gameState === "upgrade") {
+        applyUnlocks();
+        saveProgress();
+        startGame();
+      } else if (gameState === "result") {
+        progression.level = 1;
+        progression.upgradeCredits = 0;
+        progression.pendingCredits = 0;
+        progression.upgrades = { character: 0, crew: 0, hq: 0, gear: 0 };
+        applyUnlocks();
+        startGame();
+      } else {
+        startGame();
+      }
+    }
+
+    function updateBullets(dt) {
+      for (let i = bullets.length - 1; i >= 0; i -= 1) {
+        const bullet = bullets[i];
+        bullet.x += bullet.vx * dt;
+        bullet.y += bullet.vy * dt;
+        bullet.life -= dt;
+        const hit = enemies.find((enemy) => enemy.health > 0 && intersects({ x: bullet.x - 3, y: bullet.y - 3, w: 6, h: 6 }, enemy));
+        if (hit) {
+          hit.health -= hit.kind === "cop" ? 18 : 34;
+          hit.state = "chase";
+          screenShake = 7;
+          burst(bullet.x, bullet.y, hit.kind === "cop" ? "#62a8ff" : "#ffd43b", 13, 220);
+          bullets.splice(i, 1);
+          if (hit.health <= 0) {
+            player.score += hit.kind === "cop" ? 20 : 55;
+            respawnEnemy(hit, hit.kind === "cop" ? 8 : 6);
+          }
+        } else if (bullet.life <= 0 || bullet.x < 0 || bullet.y < 0 || bullet.x > WORLD.w || bullet.y > WORLD.h) {
+          bullets.splice(i, 1);
+        }
+      }
+    }
+
+    function respawnEnemy(enemy, delay) {
+      enemy.x = enemy.spawnX;
+      enemy.y = enemy.spawnY;
+      enemy.health = enemy.maxHealth;
+      enemy.state = "patrol";
+      enemy.attackTimer = delay;
+    }
+
+    function updateTerritory(dt) {
+      walls.forEach((wall) => {
+        if (wall.owner === "crew") {
+          wall.hold += dt;
+          player.score += dt * wall.value * 0.22;
+        }
+        if (wall.owner === "rival") wall.hold += dt;
+      });
+      sprays.forEach((spray) => spray.life -= dt);
+      for (let i = sprays.length - 1; i >= 0; i -= 1) if (sprays[i].life <= 0) sprays.splice(i, 1);
+      player.heat = clamp(player.heat - dt * 0.01, 1, 5);
+    }
+
+    function updateEffects(dt) {
+      screenShake = Math.max(0, screenShake - dt * 38);
+      flash = Math.max(0, flash - dt * 1.8);
+      for (let i = particles.length - 1; i >= 0; i -= 1) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.9;
+        p.vy *= 0.9;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      for (let i = ripples.length - 1; i >= 0; i -= 1) {
+        const r = ripples[i];
+        r.r += 150 * dt;
+        r.life -= dt;
+        if (r.life <= 0) ripples.splice(i, 1);
+      }
+      rain.forEach((drop) => {
+        drop.x += drop.drift * dt;
+        drop.y += drop.speed * dt;
+        if (drop.y - camera.y > HEIGHT + 80) {
+          drop.y = camera.y - Math.random() * 260;
+          drop.x = camera.x + Math.random() * WIDTH;
+        }
+        if (drop.x < 0) drop.x += WORLD.w;
+      });
+    }
+
+    function updateCamera() {
+      camera.tx = clamp(player.x + player.w / 2 - WIDTH / 2 + Math.cos(player.facing) * 54, 0, WORLD.w - WIDTH);
+      camera.ty = clamp(player.y + player.h / 2 - HEIGHT / 2 + Math.sin(player.facing) * 34, 0, WORLD.h - HEIGHT);
+      camera.x += (camera.tx - camera.x) * 0.12;
+      camera.y += (camera.ty - camera.y) * 0.12;
+    }
+
+    function updateHud() {
+      const owned = walls.filter((wall) => wall.owner === "crew").length;
+      const stats = getStats();
+      const target = currentLevelConfig();
+      ui.level.textContent = `${progression.level} - ${target.district}`;
+      ui.upgradeCredits.textContent = progression.upgradeCredits.toString();
+      ui.score.textContent = Math.floor(player.score).toString();
+      ui.territory.textContent = `${owned}/${target.territory}`;
+      ui.cans.textContent = player.cans.toString();
+      ui.ammo.textContent = player.ammo.toString();
+      ui.crew.textContent = player.crew.length.toString();
+      ui.healthText.textContent = Math.ceil(player.health).toString();
+      ui.paintText.textContent = Math.ceil(player.paint).toString();
+      ui.staminaText.textContent = Math.ceil(player.stamina).toString();
+      ui.heat.textContent = Math.ceil(player.heat).toString();
+      ui.timeLost.textContent = `${player.timeLost}s`;
+      ui.healthFill.style.transform = `scaleX(${clamp(player.health / stats.maxHealth, 0, 1)})`;
+      ui.paintFill.style.transform = `scaleX(${clamp(player.paint / stats.maxPaint, 0, 1)})`;
+      ui.staminaFill.style.transform = `scaleX(${clamp(player.stamina / stats.maxStamina, 0, 1)})`;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      ctx.save();
+      const shakeX = screenShake ? (Math.random() - 0.5) * screenShake : 0;
+      const shakeY = screenShake ? (Math.random() - 0.5) * screenShake : 0;
+      ctx.translate(Math.round(shakeX), Math.round(shakeY));
+      ctx.translate(-camera.x, -camera.y);
+      drawWorld();
+      drawLightPools();
+      drawPickups();
+      drawWalls();
+      drawSprays();
+      drawRipples();
+      drawParticles();
+      drawCharacters();
+      drawBullets();
+      drawRain();
+      ctx.restore();
+      drawScreenGrade();
+      drawMinimap();
+    }
+
+    function drawWorld() {
+      if (assets.city && assets.city.complete) ctx.drawImage(assets.city, 0, 0, WORLD.w, WORLD.h);
+      else {
+        ctx.fillStyle = "#171a1e";
+        ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+      }
+      ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+      ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+      roads.forEach((road) => {
+        ctx.fillStyle = "rgba(8, 9, 9, 0.12)";
+        ctx.fillRect(road.x, road.y, road.w, road.h);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(road.x, road.y, road.w, road.h);
+      });
+    }
+
+    function drawLightPools() {
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      const lights = [
+        { x: 225, y: 220, c: "rgba(0,224,255,0.18)" },
+        { x: 620, y: 615, c: "rgba(255,47,125,0.16)" },
+        { x: 1060, y: 1025, c: "rgba(255,212,59,0.13)" },
+        { x: 1460, y: 1460, c: "rgba(0,224,255,0.15)" },
+        { x: 1840, y: 1840, c: "rgba(255,47,125,0.17)" },
+        { x: 2240, y: 620, c: "rgba(98,168,255,0.15)" }
+      ];
+      lights.forEach((light) => {
+        const g = ctx.createRadialGradient(light.x, light.y, 10, light.x, light.y, 280);
+        g.addColorStop(0, light.c);
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(light.x, light.y, 280, 0, TAU);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawWalls() {
+      walls.forEach((wall) => {
+        const ownerColor = wall.owner === "crew" ? "#ff2f7d" : wall.owner === "rival" ? "#ffd43b" : "#f4f1e8";
+        ctx.save();
+        ctx.shadowColor = ownerColor;
+        ctx.shadowBlur = wall.owner === "none" ? 8 : 22;
+        ctx.fillStyle = wall.owner === "none" ? "rgba(244,241,232,0.18)" : ownerColor;
+        ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+        ctx.strokeStyle = ownerColor;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(wall.x, wall.y, wall.w, wall.h);
+        ctx.shadowBlur = 0;
+        if (wall.progress > 0) {
+          ctx.fillStyle = "rgba(0,0,0,0.62)";
+          ctx.fillRect(wall.x - 2, wall.y - 13, wall.w + 4, 8);
+          ctx.fillStyle = "#00e0ff";
+          ctx.fillRect(wall.x, wall.y - 12, wall.w * (wall.progress / wall.required), 6);
+        }
+        ctx.save();
+        ctx.translate(wall.x + wall.w / 2, wall.y + wall.h / 2);
+        if (wall.h > wall.w) ctx.rotate(Math.PI / 2);
+        ctx.fillStyle = "#080909";
+        ctx.font = `${wall.owner === "none" ? 16 : 24}px Impact`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(wall.owner === "crew" ? "404" : wall.owner === "rival" ? "RIVAL" : "TAG", 0, 0);
+        ctx.restore();
+        ctx.restore();
+      });
+    }
+
+    function drawPickups() {
+      pickups.forEach((pickup) => {
+        if (!pickup.active) return;
+        const bob = Math.sin(performance.now() / 180 + pickup.x) * 4;
+        const color = pickup.type === "paint" ? "#00e0ff" : pickup.type === "health" ? "#47e071" : pickup.type === "recruit" ? "#ff2f7d" : "#ffd43b";
+        ctx.save();
+        ctx.translate(pickup.x, pickup.y + bob);
+        ctx.globalCompositeOperation = "screen";
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.24;
+        ctx.beginPath();
+        ctx.arc(0, 0, pickup.type === "recruit" ? 42 : 34, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.arc(0, 0, pickup.type === "recruit" ? 20 : 15, 0, TAU);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#080909";
+        ctx.font = "16px Impact";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(pickup.type === "paint" ? "P" : pickup.type === "health" ? "+" : pickup.type === "ammo" ? "A" : pickup.type === "weapon" ? "W" : "C", 0, 1);
+        ctx.restore();
+      });
+    }
+
+    function drawSprays() {
+      sprays.forEach((spray) => {
+        ctx.globalAlpha = clamp(spray.life * 2.2, 0, 0.8);
+        ctx.shadowColor = spray.color;
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = spray.color;
+        ctx.beginPath();
+        ctx.arc(spray.x, spray.y, 4 + Math.random() * 7, 0, TAU);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function drawRipples() {
+      ripples.forEach((ripple) => {
+        ctx.save();
+        ctx.globalAlpha = clamp(ripple.life * 1.8, 0, 1);
+        ctx.strokeStyle = ripple.color;
+        ctx.shadowColor = ripple.color;
+        ctx.shadowBlur = 18;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.r, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    function drawParticles() {
+      particles.forEach((p) => {
+        const alpha = clamp(p.life / p.maxLife, 0, 1);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.globalCompositeOperation = "screen";
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (0.75 + alpha * 0.5), 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function drawCharacters() {
+      const playerImage = assets[characterSkins.find((skin) => skin.id === progression.selectedSkin)?.asset || "hoodie2"] || assets.player;
+      player.crew.forEach((mate, index) => drawSprite(playerImage, mate, mate.facing, "#00e0ff", 0.82, index + 1));
+      enemies.forEach((enemy) => {
+        if (enemy.health <= 0 || enemy.attackTimer > 5) return;
+        drawSprite(assets.enemy, enemy, enemy.facing || 0, enemy.kind === "cop" ? "#62a8ff" : "#ffd43b", 1, enemy.kind === "cop" ? "COP" : "RIV");
+        drawEnemyBar(enemy);
+      });
+      drawSprite(playerImage, player, player.facing, "#ff2f7d", 1.08, "YOU");
+    }
+
+    function drawSprite(image, entity, facing, ring, scale, label) {
+      const cx = entity.x + entity.w / 2;
+      const cy = entity.y + entity.h / 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.fillStyle = "rgba(0,0,0,0.42)";
+      ctx.beginPath();
+      ctx.ellipse(0, entity.h * 0.36 * scale, entity.w * 0.44 * scale, entity.h * 0.16 * scale, 0, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = ring;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = ring;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(0, 0, entity.w * 0.48 * scale, 0, TAU);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      if (image && image.complete) {
+        const cols = image === assets.enemy ? 6 : 4;
+        const rows = 4;
+        const sw = image.width / cols;
+        const sh = image.height / rows;
+        const moving = entity === player
+          ? (keys.w || keys.a || keys.s || keys.d || keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight)
+          : entity.state === "chase" || Math.hypot((entity.x - (entity.lastX || entity.x)), (entity.y - (entity.lastY || entity.y))) > 0.4;
+        const frameRate = entity.state === "chase" ? 95 : 130;
+        const frame = moving ? Math.floor(performance.now() / frameRate) % cols : 0;
+        let row = 1;
+        let flip = false;
+        const angle = Math.atan2(Math.sin(facing), Math.cos(facing));
+        if (angle > Math.PI / 4 && angle < Math.PI * 3 / 4) row = 0;
+        else if (angle < -Math.PI / 4 && angle > -Math.PI * 3 / 4) row = 3;
+        else flip = Math.abs(angle) > Math.PI / 2;
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(image, frame * sw, row * sh, sw, sh, -entity.w * 0.68 * scale, -entity.h * 0.72 * scale, entity.w * 1.36 * scale, entity.h * 1.36 * scale);
+      } else {
+        ctx.fillStyle = ring;
+        ctx.fillRect(-entity.w / 2, -entity.h / 2, entity.w, entity.h);
+      }
+      ctx.restore();
+      ctx.fillStyle = "#fff";
+      ctx.font = "12px Impact";
+      ctx.textAlign = "center";
+      ctx.fillText(label, cx, cy - entity.h * 0.68);
+      entity.lastX = entity.x;
+      entity.lastY = entity.y;
+    }
+
+    function drawEnemyBar(enemy) {
+      const pct = clamp(enemy.health / enemy.maxHealth, 0, 1);
+      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      ctx.fillRect(enemy.x, enemy.y - 12, enemy.w, 6);
+      ctx.fillStyle = enemy.kind === "cop" ? "#62a8ff" : "#ffd43b";
+      ctx.fillRect(enemy.x, enemy.y - 12, enemy.w * pct, 6);
+    }
+
+    function drawBullets() {
+      bullets.forEach((bullet) => {
+        ctx.strokeStyle = "rgba(255,243,160,0.55)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(bullet.x - bullet.vx * 0.018, bullet.y - bullet.vy * 0.018);
+        ctx.lineTo(bullet.x, bullet.y);
+        ctx.stroke();
+        ctx.shadowColor = "#fff3a0";
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = "#fff3a0";
+        ctx.beginPath();
+        ctx.arc(bullet.x, bullet.y, 4, 0, TAU);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+    }
+
+    function drawRain() {
+      ctx.save();
+      ctx.globalAlpha = 0.24;
+      ctx.strokeStyle = "rgba(165, 221, 255, 0.72)";
+      ctx.lineWidth = 1.5;
+      rain.forEach((drop) => {
+        if (drop.x < camera.x - 80 || drop.x > camera.x + WIDTH + 80 || drop.y < camera.y - 100 || drop.y > camera.y + HEIGHT + 100) return;
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x + drop.drift * 0.04, drop.y + drop.len);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawScreenGrade() {
+      const heatAlpha = clamp((player.heat - 1) / 4, 0, 1);
+      const g = ctx.createRadialGradient(WIDTH / 2, HEIGHT / 2, HEIGHT * 0.18, WIDTH / 2, HEIGHT / 2, HEIGHT * 0.78);
+      g.addColorStop(0, "rgba(0,0,0,0)");
+      g.addColorStop(1, `rgba(0,0,0,${0.36 + heatAlpha * 0.12})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+      if (flash > 0) {
+        ctx.fillStyle = `rgba(255,72,72,${flash * 0.22})`;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      }
+
+      ctx.globalAlpha = 0.045;
+      ctx.fillStyle = "#fff";
+      for (let y = 0; y < HEIGHT; y += 4) ctx.fillRect(0, y, WIDTH, 1);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawMinimap() {
+      const x = WIDTH - 178;
+      const y = HEIGHT - 150;
+      const w = 152;
+      const h = 128;
+      ctx.fillStyle = "rgba(0,0,0,0.64)";
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = "rgba(244,241,232,0.36)";
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "rgba(0,224,255,0.08)";
+      ctx.fillRect(x + camera.x / WORLD.w * w, y + camera.y / WORLD.h * h, WIDTH / WORLD.w * w, HEIGHT / WORLD.h * h);
+      walls.forEach((wall) => {
+        ctx.fillStyle = wall.owner === "crew" ? "#ff2f7d" : wall.owner === "rival" ? "#ffd43b" : "#777";
+        ctx.fillRect(x + wall.x / WORLD.w * w, y + wall.y / WORLD.h * h, 4, 4);
+      });
+      ctx.fillStyle = "#00e0ff";
+      ctx.beginPath();
+      ctx.arc(x + player.x / WORLD.w * w, y + player.y / WORLD.h * h, 4, 0, TAU);
+      ctx.fill();
+    }
+
+    function finish(title, subtitle, copy) {
+      gameState = "result";
+      ui.resultTitle.textContent = title;
+      ui.resultSubtitle.textContent = subtitle;
+      ui.resultCopy.textContent = copy;
+      ui.result.style.display = "flex";
+    }
+
+    function loop(timestamp) {
+      const dt = Math.min(0.033, (timestamp - lastTime) / 1000 || 0);
+      lastTime = timestamp;
+      update(dt);
+      draw();
+      if (gameState === "play") requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key === "F" ? "f" : event.key;
+      if (event.key === "h" || event.key === "H" || event.key === "p" || event.key === "P") {
+        if (gameState === "pause") resumeGame();
+        else openHelp();
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "Escape" && gameState === "pause") {
+        resumeGame();
+        event.preventDefault();
+        return;
+      }
+      if (Object.prototype.hasOwnProperty.call(keys, key)) {
+        keys[key] = true;
+        event.preventDefault();
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      const key = event.key === "F" ? "f" : event.key;
+      if (Object.prototype.hasOwnProperty.call(keys, key)) {
+        keys[key] = false;
+        event.preventDefault();
+      }
+    });
+
+    function bindTouch(id, key) {
+      const el = document.getElementById(id);
+      const on = (event) => { event.preventDefault(); keys[key] = true; };
+      const off = (event) => { event.preventDefault(); keys[key] = false; };
+      el.addEventListener("touchstart", on, { passive: false });
+      el.addEventListener("touchend", off, { passive: false });
+      el.addEventListener("touchcancel", off, { passive: false });
+      el.addEventListener("mousedown", on);
+      el.addEventListener("mouseup", off);
+      el.addEventListener("mouseleave", off);
+    }
+
+    bindTouch("up", "w");
+    bindTouch("down", "s");
+    bindTouch("left", "a");
+    bindTouch("right", "d");
+    bindTouch("sprint", "Shift");
+    bindTouch("tag", " ");
+    bindTouch("shoot", "f");
+    ui.startButton.addEventListener("click", startGame);
+    ui.continueButton.addEventListener("click", () => {
+      if (loadProgress()) startGame();
+    });
+    ui.newRunButton.addEventListener("click", () => {
+      resetProgression();
+      renderSkinChoices();
+      startGame();
+    });
+    ui.restartButton.addEventListener("click", nextLevel);
+    ui.resumeButton.addEventListener("click", resumeGame);
+    ui.saveButton.addEventListener("click", saveProgress);
+    ui.muteButton.addEventListener("click", toggleMute);
+    loadProgress();
+    updateMuteButton();
+    loadAssets();
+    updateHud();
+    draw();
+  </script>
+</body>
+</html>
