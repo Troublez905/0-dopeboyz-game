@@ -1,0 +1,8 @@
+unity/Assets/Models/**/*.obj filter=lfs diff=lfs merge=lfs -text
+unity/Assets/Models/**/*.png filter=lfs diff=lfs merge=lfs -text
+unity/Assets/Models/**/*.glb filter=lfs diff=lfs merge=lfs -text
+unity/Assets/resources-oct/**/*.obj filter=lfs diff=lfs merge=lfs -text
+unity/Assets/resources-oct/**/*.png filter=lfs diff=lfs merge=lfs -text
+unity/Assets/resources-oct/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+unity/Assets/resources-oct/**/*.blend filter=lfs diff=lfs merge=lfs -text
+unity/Assets/resources-oct/**/*.anim filter=lfs diff=lfs merge=lfs -text

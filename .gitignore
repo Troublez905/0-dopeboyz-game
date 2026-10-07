@@ -10,6 +10,7 @@
 **/.vs/
 *.csproj
 *.sln
+*.slnx
 *.log
 *.tmp
 *.bak
@@ -33,3 +34,9 @@ credentials.json
 street_shooters_v1.json
 qa_save.json
 options.cfg
+
+# Duplicate source download archives; imported Unity assets remain versioned.
+/unity/Assets/resources-oct/**/*.zip
+/unity/Assets/resources-oct/**/*.zip.meta
+/unity/Assets/resources-oct/**/*.usdz
+/unity/Assets/resources-oct/**/*.usdz.meta

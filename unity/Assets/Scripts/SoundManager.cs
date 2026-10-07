@@ -22,7 +22,22 @@ namespace Dopeboyz
         GeyserBlast,
         CrateCrack,
         EngineRev,
-        CompressorHiss
+        CompressorHiss,
+        ShootPaint,
+        Explosion,
+        SprayCan,
+        WallComplete,
+        LevelUp,
+        Footstep,
+        BubbleShield,
+        SlowMo,
+        SprayCapSelect,
+        Whoosh,
+        CrewOrder,
+        ShieldHit,
+        HealthPickup,
+        PaintPickup,
+        AmmoPickup
     }
 
     public class SoundManager : MonoBehaviour
@@ -44,7 +59,6 @@ namespace Dopeboyz
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
 
             sfxSource = gameObject.AddComponent<AudioSource>();
             musicSource = gameObject.AddComponent<AudioSource>();
@@ -71,17 +85,48 @@ namespace Dopeboyz
             clips[SoundType.UpdraftSteam] = CreateNoiseSweepClip(0.45f);
             clips[SoundType.TurntableScratch] = CreateScratchClip(0.4f);
             clips[SoundType.GeyserBlast] = CreateGeyserClip(0.6f);
-            clips[SoundType.CrateCrack] = CreateCrackClip(0.28f);
+            clips[SoundType.CrateCrack] = CreateFrequencySweepClip(350f, 80f, 0.25f);
             clips[SoundType.EngineRev] = CreateEngineRevClip(0.55f);
             clips[SoundType.CompressorHiss] = CreateCompressorClip(0.42f);
+            clips[SoundType.ShootPaint] = clips[SoundType.Shoot];
+            clips[SoundType.Explosion] = CreateNoiseSweepClip(0.45f);
+            clips[SoundType.SprayCan] = clips[SoundType.SprayHiss];
+            clips[SoundType.WallComplete] = clips[SoundType.WallClaim];
+            clips[SoundType.LevelUp] = clips[SoundType.CashChime];
+            clips[SoundType.Footstep] = clips[SoundType.Dash];
+            clips[SoundType.BubbleShield] = clips[SoundType.HitDeflect];
+            clips[SoundType.SlowMo] = clips[SoundType.SlowmoWarp];
+            clips[SoundType.SprayCapSelect] = clips[SoundType.Dash];
+            clips[SoundType.Whoosh] = clips[SoundType.Dash];
+            clips[SoundType.CrewOrder] = clips[SoundType.CashChime];
+            clips[SoundType.ShieldHit] = clips[SoundType.HitDeflect];
+
+            // Crash-proof fallback: ensure all enum values exist in clips
+            foreach (SoundType st in System.Enum.GetValues(typeof(SoundType)))
+            {
+                if (!clips.ContainsKey(st) || clips[st] == null)
+                {
+                    clips[st] = clips[SoundType.Dash];
+                }
+            }
         }
 
         public void PlaySound(SoundType type, float volumeMultiplier = 1.0f)
         {
-            if (clips.ContainsKey(type) && sfxSource != null)
+            if (sfxSource != null && clips.TryGetValue(type, out var clip) && clip != null)
             {
-                sfxSource.PlayOneShot(clips[type], sfxVolume * volumeMultiplier);
+                sfxSource.PlayOneShot(clip, sfxVolume * volumeMultiplier);
             }
+        }
+
+        public void SetVolumes(float music, float effects)
+        {
+            musicVolume = music; sfxVolume = effects;
+            if (musicSource != null) musicSource.volume = music;
+        }
+        public void PlayAt(SoundType type, Vector3 position)
+        {
+            if (clips.TryGetValue(type, out var clip)) AudioSource.PlayClipAtPoint(clip, position, sfxVolume);
         }
 
         private void StartMusic()

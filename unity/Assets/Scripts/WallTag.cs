@@ -31,8 +31,8 @@ namespace Dopeboyz
         public Color neutralColor = new Color(1.0f, 0.878f, 0.427f); // Gold
 
         [Header("Visual Layers")]
-        public SpriteRenderer backgroundRenderer;
-        public SpriteRenderer graffitiRenderer;
+        public Renderer graffitiRenderer;
+        public SpriteRenderer spriteGraffitiRenderer;
         public LineRenderer progressLine;
         public Transform crownBadge;
 
@@ -99,6 +99,7 @@ namespace Dopeboyz
 
         public void ApplyInstantStencil(string sprayer)
         {
+            if ((sprayer == "crew" && owner == WallOwner.Crew) || (sprayer == "rival" && owner == WallOwner.Rival)) return;
             if (sprayer == "crew")
             {
                 crewProgress = 1f;
@@ -106,29 +107,64 @@ namespace Dopeboyz
                 owner = WallOwner.Crew;
                 GameManager.Instance?.RegisterWallClaim("crew", spotName, spotSize);
             }
+            else
+            {
+                rivalProgress = 1f;
+                crewProgress = 0f;
+                owner = WallOwner.Rival;
+                GameManager.Instance?.RegisterWallClaim("rival", spotName, spotSize);
+            }
             UpdateVisuals();
         }
 
-        private void UpdateVisuals()
+        public void UpdateVisuals()
         {
-            if (graffitiRenderer != null)
+            Color targetCol = neutralColor;
+            float alpha = 0.4f;
+
+            if (owner == WallOwner.Crew)
             {
-                if (owner == WallOwner.Crew)
+                targetCol = crewColor;
+                alpha = 1.0f;
+            }
+            else if (owner == WallOwner.Rival)
+            {
+                targetCol = rivalColor;
+                alpha = 1.0f;
+            }
+            else
+            {
+                if (crewProgress > 0f)
                 {
-                    graffitiRenderer.color = crewColor;
-                    if (crownBadge != null) crownBadge.gameObject.SetActive(true);
+                    targetCol = crewColor;
+                    alpha = 0.35f + crewProgress * 0.65f;
                 }
-                else if (owner == WallOwner.Rival)
+                else if (rivalProgress > 0f)
                 {
-                    graffitiRenderer.color = rivalColor;
-                    if (crownBadge != null) crownBadge.gameObject.SetActive(false);
+                    targetCol = rivalColor;
+                    alpha = 0.35f + rivalProgress * 0.65f;
                 }
-                else
-                {
-                    graffitiRenderer.color = Color.Lerp(crewColor, rivalColor, rivalProgress);
-                    graffitiRenderer.color = new Color(graffitiRenderer.color.r, graffitiRenderer.color.g, graffitiRenderer.color.b, Mathf.Max(crewProgress, rivalProgress));
-                    if (crownBadge != null) crownBadge.gameObject.SetActive(false);
-                }
+            }
+
+            // Update 3D MeshRenderer material if present
+            if (graffitiRenderer != null && graffitiRenderer.material != null)
+            {
+                Color col = targetCol;
+                col.a = alpha;
+                graffitiRenderer.material.color = col;
+            }
+
+            // Update SpriteRenderer if present
+            if (spriteGraffitiRenderer != null)
+            {
+                Color col = targetCol;
+                col.a = alpha;
+                spriteGraffitiRenderer.color = col;
+            }
+
+            if (crownBadge != null)
+            {
+                crownBadge.gameObject.SetActive(owner == WallOwner.Crew);
             }
         }
     }

@@ -12,7 +12,9 @@ namespace Dopeboyz
         Shop,
         HQ,
         BlackMarket,
-        GameOver
+        GameOver,
+        Loading,
+        Results
     }
 
     public class GameManager : MonoBehaviour
@@ -61,7 +63,7 @@ namespace Dopeboyz
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            currentState = GameState.MainMenu;
         }
 
         private void Update()
@@ -134,6 +136,7 @@ namespace Dopeboyz
 
         public void RegisterWallClaim(string owner, string wallName, int wallSize)
         {
+            GameSession.Instance?.RecordClaim(owner, wallName);
             if (owner == "crew")
             {
                 combo = Mathf.Min(combo + 1, 5);
@@ -141,7 +144,7 @@ namespace Dopeboyz
                 int reward = (15 + wallSize * 5) * combo;
                 AddCash(reward);
                 AddScore(25 * combo);
-                crewWalls++;
+                if (GameSession.Instance == null) crewWalls++;
 
                 Announce($"{wallName} claimed by 404 CREW! x{combo} Combo (+$ {reward})");
 
@@ -156,7 +159,7 @@ namespace Dopeboyz
             }
             else if (owner == "rival")
             {
-                rivalWalls++;
+                if (GameSession.Instance == null) rivalWalls++;
                 Announce($"⚠️ {wallName} tagged over by RIVALS!");
             }
         }

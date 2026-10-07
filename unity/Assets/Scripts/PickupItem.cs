@@ -20,14 +20,17 @@ namespace Dopeboyz
 
         [Header("Visual Effects")]
         public SpriteRenderer spriteRenderer;
-        public float floatAmplitude = 0.15f;
+        public MeshRenderer meshRenderer;
+        public float floatAmplitude = 0.25f;
         public float floatFrequency = 2.5f;
+        public float rotationSpeed = 65f;
         private Vector3 initialLocalPos;
 
         private void Start()
         {
             initialLocalPos = transform.position;
             if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+            if (meshRenderer == null) meshRenderer = GetComponent<MeshRenderer>();
         }
 
         private void Update()
@@ -42,13 +45,14 @@ namespace Dopeboyz
             }
             else
             {
-                // Subtle floating bob
+                // Subtle 3D floating bob and rotation
                 float offset = Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
                 transform.position = initialLocalPos + new Vector3(0, offset, 0);
+                transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.World);
             }
         }
 
-        private void OnTriggerEnter2D(Collider2D collision)
+        private void OnTriggerEnter(Collider collision)
         {
             if (currentCooldown > 0f) return;
 
@@ -58,7 +62,7 @@ namespace Dopeboyz
                 if (player != null && Collect(player))
                 {
                     currentCooldown = cooldownTime;
-                    if (spriteRenderer != null) spriteRenderer.enabled = false;
+                    SetVisualsActive(false);
                     SoundManager.Instance?.PlaySound(SoundType.Pickup);
                 }
             }
@@ -103,9 +107,15 @@ namespace Dopeboyz
             return false;
         }
 
+        private void SetVisualsActive(bool active)
+        {
+            if (spriteRenderer != null) spriteRenderer.enabled = active;
+            if (meshRenderer != null) meshRenderer.enabled = active;
+        }
+
         private void Respawn()
         {
-            if (spriteRenderer != null) spriteRenderer.enabled = true;
+            SetVisualsActive(true);
         }
     }
 }

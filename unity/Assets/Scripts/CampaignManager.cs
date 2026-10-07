@@ -49,6 +49,7 @@ namespace Dopeboyz
         public float currentHoldTimer = 0f;
         public int contractsCompletedThisDistrict = 0;
         public bool hasActiveDelivery = false;
+        public bool deliveryCompleted;
         public bool rivalCaptainDefeated = false;
 
         [Header("Districts Configuration")]
@@ -69,7 +70,6 @@ namespace Dopeboyz
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
             InitializeDistricts();
             InitializeUpgrades();
         }
@@ -92,7 +92,7 @@ namespace Dopeboyz
         private void InitializeUpgrades()
         {
             upgrades.Clear();
-            AddUpgrade("speed", "Runner", "+18 move speed per rank", 0);
+            AddUpgrade("speed", "Runner", "+1.5 move speed per rank", 0);
             AddUpgrade("paint", "Paint rig", "+30 paint capacity, +12% tagging speed", 0);
             AddUpgrade("health", "Resilience", "+25 maximum health per rank", 0);
             AddUpgrade("crew", "Crew training", "+1 recruit slot, +8 crew damage per rank", 1);
@@ -160,6 +160,11 @@ namespace Dopeboyz
             }
         }
 
+        public void RefreshStats()
+        {
+            foreach (string id in upgrades.Keys) ApplyUpgradeEffects(id);
+        }
+
         private void Update()
         {
             if (GameManager.Instance == null || GameManager.Instance.currentState != GameState.Playing) return;
@@ -174,8 +179,9 @@ namespace Dopeboyz
 
             bool wallsMet = GameManager.Instance.crewWalls >= dist.requiredWalls;
             bool repMet = GameManager.Instance.score >= dist.requiredRep;
-            bool contractsMet = contractsCompletedThisDistrict >= dist.requireContracts;
+            bool contractsMet = contractsCompletedThisDistrict >= Mathf.Max(currentDistrictIndex == 0 ? 1 : 0, dist.requireContracts);
             bool captainMet = !dist.requireRivalCaptain || rivalCaptainDefeated;
+            bool deliveryMet = !dist.requireDelivery || deliveryCompleted;
 
             int activeCrew = 0;
             if (CityController.Instance != null)
@@ -186,7 +192,7 @@ namespace Dopeboyz
 
             if (dist.holdTimeRequired > 0f)
             {
-                if (wallsMet && repMet && crewMet)
+                if (wallsMet && repMet && crewMet && contractsMet && captainMet && deliveryMet)
                 {
                     currentHoldTimer += Time.deltaTime;
                     if (currentHoldTimer >= dist.holdTimeRequired)
@@ -201,7 +207,7 @@ namespace Dopeboyz
             }
             else
             {
-                if (wallsMet && repMet && contractsMet && crewMet && captainMet)
+                if (wallsMet && repMet && contractsMet && crewMet && captainMet && deliveryMet)
                 {
                     CompleteCurrentDistrict();
                 }
@@ -210,6 +216,7 @@ namespace Dopeboyz
 
         public void CompleteCurrentDistrict()
         {
+            if (campaignCompleted || currentDistrictIndex >= districts.Count) return;
             var dist = districts[currentDistrictIndex];
             levelCredits += dist.rewardCredits;
             clearedDistricts = Mathf.Max(clearedDistricts, currentDistrictIndex + 1);
@@ -224,6 +231,7 @@ namespace Dopeboyz
                 contractsCompletedThisDistrict = 0;
                 rivalCaptainDefeated = false;
                 hasActiveDelivery = false;
+                deliveryCompleted = false;
                 GameManager.Instance.districtLevel = currentDistrictIndex;
                 GameManager.Instance.districtName = districts[currentDistrictIndex].name;
                 OnDistrictChanged?.Invoke(currentDistrictIndex);
@@ -259,6 +267,23 @@ namespace Dopeboyz
                 hqStashPaint -= toTransfer;
                 PlayerController.Instance.currentPaint += toTransfer;
                 GameManager.Instance?.Announce($"📦 Withdrew {toTransfer:F0} paint from HQ Stash ({hqStashPaint}/{maxStashPaint})");
+            }
+        }
+
+        public void RequestContract()
+        {
+            if (GameManager.Instance != null && GameManager.Instance.contractActive) return;
+            if (CityController.Instance != null && CityController.Instance.districtWalls.Count > 0)
+            {
+                var walls = CityController.Instance.districtWalls.FindAll(w => w != null && w.owner != WallOwner.Crew);
+                if (walls.Count == 0) { GameManager.Instance.Announce("All walls are already claimed."); return; }
+                var target = walls[UnityEngine.Random.Range(0, walls.Count)];
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.currentContractWall = target.spotName;
+                    GameManager.Instance.contractActive = true;
+                    GameManager.Instance.Announce($"📜 New Street Contract: Tag {target.spotName} for $90 payout!");
+                }
             }
         }
     }
