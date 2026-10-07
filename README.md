@@ -1,10 +1,19 @@
 # Street Shooters
 
-**Godot beta 0.2 | Single player | Windows | Keyboard and mouse**
+**godot-v5 / unity-v2 | Single player | Windows | Keyboard and mouse**
 
 Claim the wall. Keep the block. Build your crew.
 
-Street Shooters is a top-down graffiti territory game with eight district missions across two illustrated city maps. Paint walls, protect tags, collect supplies, recruit backup and choose where to spend upgrade credits. Police hunt you when heat rises; rivals repaint territory you leave exposed.
+Street Shooters is a single-player graffiti territory game about claiming walls, defending your block and building your crew. Paint murals, collect supplies, take street contracts and improve your character while managing police heat and rival crews.
+
+Two editions live in this repository:
+
+| Edition | Experience | Status |
+| --- | --- | --- |
+| **godot-v5** | Top-down action with eight district missions across two illustrated city maps, crew recruitment, upgrades and local saves. | Existing Godot beta; gameplay unchanged by the Unity update. |
+| **unity-v2** | Third-person 3D Canal Ink Yard beta with imported models, an animated companion, menus, loading, checkpoint saves, level progression and timed challenges. | Playable development beta; art cleanup and campaign balancing remain. |
+
+These are game-edition versions, not engine versions. Godot uses 4.6.2; Unity uses 6000.4.0f1. Saves are separate and do not transfer between engines.
 
 ## Start Playing
 
@@ -13,6 +22,18 @@ Street Shooters is a top-down graffiti territory game with eight district missio
 The GitHub repository includes game source, artwork, documentation, and both Godot and Unity project files. Generated editor caches and the local Godot executable are excluded.
 
 Install Godot 4.6.2, import `godot/project.godot` in the editor, allow asset import to finish, then press F5. The Windows launchers expect the executable at `tools/godot/Godot_v4.6.2-stable_win64.exe`; place a matching portable Godot download there to use those launchers. The Unity project is in `unity/`; open it through Unity Hub with the version recorded in `unity/ProjectSettings/ProjectVersion.txt`.
+
+For **unity-v2**, install Git LFS and run `git lfs pull` after cloning. Open `unity/` in Unity 6000.4.0f1, open `Assets/Scenes/MainScene.unity`, and press Play. Use **Dopeboyz > Build Canal Windows Player** to create the Windows executable, then launch `PLAY-UNITY-BETA.cmd`. Generated builds are not stored in Git. The supplied `.blend` character dependencies may require Blender; the development machine uses Blender 5.0.
+
+### Unity-v2 Beta
+
+Start a new game from the main menu in the central plaza. WASD moves relative to the camera, the mouse orbits, right-click aims, left-click uses the selected tool, and R switches spray/paintball. Space jumps, Shift sprints, Ctrl dashes, E interacts, C requests a contract, Tab opens upgrades, and Escape pauses.
+
+Claim walls, complete contracts, refill paint, and return to HQ to checkpoint and purchase upgrades. Optional challenges include tagging three walls in 90 seconds and delivering cargo to the lowrider. Character levels run from 1 to 10 with skill-credit rewards.
+
+The final Windows beta passed 19 automated startup, save, upgrade, reload and resource checks. This is not a full manual campaign or audio-listening certification. Some imported buildings have mesh defects, and the original hero is not skeletally animated.
+
+See [the implementation record](oct-6-2026-completed-tasks.md) and [remaining work and asset prompts](oct-6-2026-addto%20game.md). The detailed controls, campaign tables and gameplay guide below describe **godot-v5** unless stated otherwise.
 
 ### On This Local Checkout
 
